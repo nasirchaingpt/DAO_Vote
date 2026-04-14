@@ -4,18 +4,25 @@ import { type Address } from "viem";
 import { DAOPOLL_ADDRESS, daopollAbi } from "./daopoll";
 import { ConnectBar } from "./components/ConnectBar";
 import { CreatePollCard } from "./components/CreatePollCard";
-import { PollCard, type PollData } from "./components/PollCard";
+import { PollCard, type PollView } from "./components/PollCard";
 
-function parsePoll(result: unknown): PollData | undefined {
+function parsePollView(result: unknown): PollView | undefined {
   if (!Array.isArray(result) || result.length < 5) return undefined;
-  const [description, options, votes, creator, endTime] = result as [
+  const [description, options, votesRaw, creator, endTimeRaw] = result as [
     string,
     readonly string[],
-    readonly bigint[],
+    unknown,
     Address,
-    bigint,
+    unknown,
   ];
   if (typeof description !== "string" || !Array.isArray(options)) return undefined;
+  const votes = (votesRaw as readonly bigint[]).map((v) =>
+    typeof v === "bigint" ? v.toString() : String(v),
+  );
+  const endTime =
+    typeof endTimeRaw === "bigint"
+      ? endTimeRaw.toString()
+      : String(endTimeRaw);
   return {
     description,
     options,
@@ -93,11 +100,10 @@ export function App() {
       <div className="poll-grid">
         {pollCount > 0 &&
           Array.from({ length: pollCount }, (_, i) => {
-            const pollId = BigInt(i);
             const pr = pollsRead?.[i];
             const poll =
               pr?.status === "success"
-                ? parsePoll(pr.result)
+                ? parsePollView(pr.result)
                 : undefined;
             const vr = votedRead?.[i];
             const hasVoted =
@@ -105,7 +111,7 @@ export function App() {
             return (
               <PollCard
                 key={i}
-                pollId={pollId}
+                pollId={i}
                 contractAddress={DAOPOLL_ADDRESS}
                 poll={poll}
                 hasVoted={hasVoted}

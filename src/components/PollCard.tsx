@@ -7,18 +7,20 @@ import { type Address, isAddress } from "viem";
 import { useEffect } from "react";
 import { daopollAbi } from "../daopoll";
 
-export type PollData = {
+/** View model with JSON-serializable fields (React DevTools stringify props). */
+export type PollView = {
   description: string;
   options: readonly string[];
-  votes: readonly bigint[];
+  votes: readonly string[];
   creator: Address;
-  endTime: bigint;
+  /** Unix seconds as decimal string; `"0"` = no deadline */
+  endTime: string;
 };
 
 type Props = {
-  pollId: bigint;
+  pollId: number;
   contractAddress: Address;
-  poll: PollData | undefined;
+  poll: PollView | undefined;
   hasVoted: boolean | undefined;
   onConfirmed: () => void;
 };
@@ -57,14 +59,15 @@ export function PollCard({
   if (poll === undefined) {
     return (
       <div className="card poll-card">
-        <h3>Poll #{pollId.toString()}</h3>
+        <h3>Poll #{pollId}</h3>
         <p className="hint">Could not load poll data.</p>
       </div>
     );
   }
 
   const now = BigInt(Math.floor(Date.now() / 1000));
-  const ended = poll.endTime !== 0n && now > poll.endTime;
+  const endSec = BigInt(poll.endTime);
+  const ended = poll.endTime !== "0" && now > endSec;
 
   const vote = (optionIndex: number) => {
     if (!isConnected || !isAddress(contractAddress)) return;
@@ -72,16 +75,16 @@ export function PollCard({
       address: contractAddress,
       abi: daopollAbi,
       functionName: "vote",
-      args: [pollId, BigInt(optionIndex)],
+      args: [BigInt(pollId), BigInt(optionIndex)],
     });
   };
 
   return (
     <div className="card poll-card">
-      <h3>Poll #{pollId.toString()}</h3>
+      <h3>Poll #{pollId}</h3>
       <p className="poll-meta">
         Creator {formatAddr(poll.creator)}
-        {poll.endTime === 0n ? (
+        {poll.endTime === "0" ? (
           <> · no deadline</>
         ) : (
           <>
@@ -99,7 +102,7 @@ export function PollCard({
       <p style={{ marginTop: "0.75rem" }}>{poll.description}</p>
       <div style={{ marginTop: "0.75rem" }}>
         {poll.options.map((label, i) => {
-          const count = poll.votes[i] ?? 0n;
+          const count = poll.votes[i] ?? "0";
           const canVote =
             isConnected &&
             hasVoted === false &&
@@ -108,7 +111,7 @@ export function PollCard({
           return (
             <div key={i} className="option-row">
               <span>
-                {label} — <strong>{count.toString()}</strong> votes
+                {label} — <strong>{count}</strong> votes
               </span>
               <button
                 type="button"
