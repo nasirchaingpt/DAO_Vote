@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:gh-pages": "tsc --noEmit && vite build",
+    "preview:gh-pages": "vite preview"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",
